@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "expo-api-docs": {
+      "source": "expo/expo",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/expo-api-docs/SKILL.md",
+      "computedHash": "58ff0ab0de83d75a7d1bd72dce6af4cc2cd97590c09e345042f7447d37cc7b90"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
+      "computedHash": "efc547df91cc56b69792532db54607027884cb5873718c7ca1ebf6d6f1e4cb53"
+    }
+  }
+}
