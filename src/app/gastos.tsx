@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
@@ -7,39 +6,25 @@ import { Screen } from '@/components/screen';
 import { ScreenHeader } from '@/components/screen-header';
 import { SegBar } from '@/components/seg-bar';
 import { ThemedText } from '@/components/themed-text';
-import {
-  FAMILY,
-  MEMBERS,
-  money,
-  SEED_EXPENSES,
-  type Expense,
-  type MemberId,
-} from '@/constants/family';
+import { useExpenses, useMembers, useFamily } from '@/api';
+import { useUIStore, type ExpensesTab } from '@/stores/ui-store';
 import { CategoryColors, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-
-const SPLIT_MEMBERS: MemberId[] = ['nata', 'toni', 'emi'];
+import { money } from '@/lib/format/money';
+import type { Expense, Member } from '@/lib/domain';
 
 export default function GastosScreen() {
   const theme = useTheme();
-  const [tab, setTab] = useState('movimientos');
+  const { expensesTab, setExpensesTab } = useUIStore();
+  const { expenses, summary } = useExpenses();
+  const { byId } = useMembers();
+  const { family } = useFamily();
 
-  const expenses = SEED_EXPENSES;
-  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const perPerson = SPLIT_MEMBERS.map((who) => ({
-    who,
-    color: MEMBERS[who].color,
-    value: expenses.filter((e) => e.who === who).reduce((s, e) => s + e.amount, 0),
-  })).filter((p) => p.value > 0);
-
-  const fair = total / SPLIT_MEMBERS.length;
-  const youPaid = perPerson.find((p) => p.who === FAMILY.you)?.value ?? 0;
-  const youBalance = Math.round(youPaid - fair);
-  const owed = youBalance >= 0;
+  const { total, perPerson, yourBalance: youBalance, owed } = summary;
 
   return (
     <Screen>
-      <ScreenHeader title="Gastos" sub={`${FAMILY.name} · Junio 2026`} />
+      <ScreenHeader title="Gastos" sub={`${family.name} · Junio 2026`} />
 
       {/* total + split */}
       <Card style={styles.totalCard}>
@@ -61,7 +46,7 @@ export default function GastosScreen() {
             <View key={p.who} style={styles.legendRow}>
               <View style={[styles.dot, { backgroundColor: p.color }]} />
               <ThemedText type="small" style={styles.legendName}>
-                {MEMBERS[p.who].name}
+                {byId[p.who]?.name ?? ''}
               </ThemedText>
               <ThemedText type="smallBold">{money(p.value)}</ThemedText>
             </View>
@@ -91,8 +76,8 @@ export default function GastosScreen() {
 
       <View style={styles.seg}>
         <SegBar
-          value={tab}
-          onChange={setTab}
+          value={expensesTab}
+          onChange={(v) => setExpensesTab(v as ExpensesTab)}
           options={[
             { id: 'movimientos', label: 'Movimientos' },
             { id: 'categorias', label: 'Categorías' },
@@ -100,23 +85,22 @@ export default function GastosScreen() {
         />
       </View>
 
-      {tab === 'movimientos' ? (
+      {expensesTab === 'movimientos' ? (
         <Card style={styles.listCard}>
           {expenses.map((g, i) => (
             <View key={g.id} style={i > 0 && { borderTopColor: theme.lineSoft, borderTopWidth: 1 }}>
-              <ExpenseRow expense={g} />
+              <ExpenseRow expense={g} member={byId[g.who]} />
             </View>
           ))}
         </Card>
       ) : (
-        <CategoryList expenses={expenses} total={total} />
+        <CategoryList expenses={expenses} total={summary.total} />
       )}
     </Screen>
   );
 }
 
-function ExpenseRow({ expense }: { expense: Expense }) {
-  const member = MEMBERS[expense.who];
+function ExpenseRow({ expense, member }: { expense: Expense; member: Member | undefined }) {
   const color = CategoryColors[expense.cat];
   return (
     <View style={styles.expenseRow}>
@@ -124,9 +108,9 @@ function ExpenseRow({ expense }: { expense: Expense }) {
       <View style={styles.flex1}>
         <ThemedText type="smallBold">{expense.title}</ThemedText>
         <View style={styles.expenseMeta}>
-          <Avatar who={expense.who} size={16} />
+          <Avatar name={member?.name ?? ''} color={member?.color ?? ''} size={16} />
           <ThemedText type="small" themeColor="inkFaint">
-            {member.name} · {expense.when}
+            {member?.name ?? ''} · {expense.when}
           </ThemedText>
         </View>
       </View>

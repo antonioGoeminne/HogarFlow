@@ -1,22 +1,20 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { MEMBERS, type MemberId } from '@/constants/family';
-
 type AvatarProps = {
-  who: MemberId;
+  name: string;
+  color: string;
   size?: number;
 };
 
 /** Round, color-filled member avatar showing the first letter of the name. */
-export function Avatar({ who, size = 44 }: AvatarProps) {
-  const member = MEMBERS[who];
+export function Avatar({ name, color, size = 44 }: AvatarProps) {
   return (
     <View
       style={[
         styles.avatar,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: member.color },
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: color },
       ]}>
-      <Text style={[styles.letter, { fontSize: size * 0.4 }]}>{member.name[0]}</Text>
+      <Text style={[styles.letter, { fontSize: size * 0.4 }]}>{name[0]}</Text>
     </View>
   );
 }

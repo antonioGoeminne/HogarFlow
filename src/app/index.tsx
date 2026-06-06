@@ -6,40 +6,40 @@ import { Card } from '@/components/card';
 import { GlassFab } from '@/components/glass-fab';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import {
-  EVENTS,
-  FAMILY,
-  MEMBERS,
-  MONTHLY_BUDGET,
-  money,
-  SEED_EXPENSES,
-  SEED_TASKS,
-  type FamilyEvent,
-} from '@/constants/family';
+import { useTasks, useExpenses, useFamily, useEvents, useMembers } from '@/api';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useAuth } from '@/auth';
+import { money } from '@/lib/format/money';
+import type { FamilyEvent, Member, MemberId } from '@/lib/domain';
 
 export default function InicioScreen() {
   const theme = useTheme();
-  const me = MEMBERS[FAMILY.you];
+  const { tasks } = useTasks();
+  const { summary } = useExpenses();
+  const { family, monthlyBudget } = useFamily();
+  const { events } = useEvents();
+  const { byId } = useMembers();
+  const you = useAuth().user?.memberId;
 
-  const mine = SEED_TASKS.filter((t) => t.who === FAMILY.you);
+  const me = you ? byId[you] : undefined;
+  const mine = tasks.filter((t) => t.who === you);
   const pending = mine.filter((t) => !t.done);
-  const spent = SEED_EXPENSES.reduce((sum, e) => sum + e.amount, 0);
-  const budgetPct = Math.round((spent / MONTHLY_BUDGET) * 100);
+  const spent = summary.total;
+  const budgetPct = monthlyBudget > 0 ? Math.round((spent / monthlyBudget) * 100) : 0;
 
   return (
     <View style={styles.root}>
       <Screen>
         {/* greeting */}
       <View style={styles.greeting}>
-        <Avatar who={FAMILY.you} size={52} />
+        <Avatar name={me?.name ?? ''} color={me?.color ?? ''} size={52} />
         <View>
           <ThemedText type="title" style={styles.hello}>
-            Hola, {me.name}
+            Hola, {me?.name ?? ''}
           </ThemedText>
           <ThemedText type="small" themeColor="inkSoft" style={styles.subtle}>
-            Estás en {FAMILY.name} · 4 personas
+            Estás en {family.name} · 4 personas
           </ThemedText>
         </View>
       </View>
@@ -59,7 +59,7 @@ export default function InicioScreen() {
                   {pending.length} pendientes hoy
                 </ThemedText>
                 <ThemedText type="small" themeColor="inkFaint">
-                  Tus tareas en {FAMILY.name}
+                  Tus tareas en {family.name}
                 </ThemedText>
               </View>
             </View>
@@ -90,8 +90,8 @@ export default function InicioScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.eventsRow}
         style={styles.eventsScroll}>
-        {EVENTS.map((ev) => (
-          <EventCard key={ev.id} ev={ev} />
+        {events.map((ev) => (
+          <EventCard key={ev.id} ev={ev} byId={byId} />
         ))}
       </ScrollView>
 
@@ -115,13 +115,13 @@ export default function InicioScreen() {
               </View>
               <View style={[styles.freePill, { backgroundColor: theme.accentTint }]}>
                 <ThemedText type="smallBold" themeColor="good">
-                  {money(MONTHLY_BUDGET - spent)} libre
+                  {money(monthlyBudget - spent)} libre
                 </ThemedText>
               </View>
             </View>
-            <ProgressBar pct={spent / MONTHLY_BUDGET} color={theme.accent} track={theme.backgroundElement} />
+            <ProgressBar pct={monthlyBudget > 0 ? spent / monthlyBudget : 0} color={theme.accent} track={theme.backgroundElement} />
             <ThemedText type="small" themeColor="inkFaint" style={styles.subtle}>
-              {budgetPct}% del presupuesto de {money(MONTHLY_BUDGET)}
+              {budgetPct}% del presupuesto de {money(monthlyBudget)}
             </ThemedText>
           </Card>
         </Pressable>
@@ -132,7 +132,7 @@ export default function InicioScreen() {
   );
 }
 
-function EventCard({ ev }: { ev: FamilyEvent }) {
+function EventCard({ ev, byId }: { ev: FamilyEvent; byId: Record<MemberId, Member> }) {
   const theme = useTheme();
   return (
     <Card style={styles.eventCard}>
@@ -145,7 +145,7 @@ function EventCard({ ev }: { ev: FamilyEvent }) {
             {ev.mon}
           </ThemedText>
         </View>
-        <Avatar who={ev.who} size={30} />
+        <Avatar name={byId[ev.who]?.name ?? ''} color={byId[ev.who]?.color ?? ''} size={30} />
       </View>
       <View>
         <ThemedText type="smallBold" style={styles.eventTitle}>
