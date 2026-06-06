@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
@@ -7,47 +6,44 @@ import { Screen } from '@/components/screen';
 import { ScreenHeader } from '@/components/screen-header';
 import { SegBar } from '@/components/seg-bar';
 import { ThemedText } from '@/components/themed-text';
-import {
-  FAMILY,
-  MEMBERS,
-  MEMBER_ORDER,
-  SEED_TASKS,
-  type MemberId,
-  type Task,
-} from '@/constants/family';
-import { Radius, Spacing } from '@/constants/theme';
+import { useTasks, useMembers, useFamily } from '@/api';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useAuth } from '@/auth';
+import { useUIStore, type TasksFilter } from '@/stores/ui-store';
+import type { Member, Task } from '@/lib/domain';
 
 export default function TareasScreen() {
-  const [tasks, setTasks] = useState<Task[]>(SEED_TASKS);
-  const [filter, setFilter] = useState('todos');
+  const { tasks, toggle } = useTasks();
+  const { members } = useMembers();
+  const { family } = useFamily();
+  const { tasksFilter, setTasksFilter } = useUIStore();
+  const you = useAuth().user?.memberId;
 
-  const toggle = (id: string) =>
-    setTasks((ts) => ts.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
-
-  const present = MEMBER_ORDER.filter((w) => tasks.some((t) => t.who === w));
-  const shown = filter === 'todos' ? present : present.filter((w) => w === FAMILY.you);
+  const present = members.filter((m) => tasks.some((t) => t.who === m.id));
+  const shown = tasksFilter === 'todos' ? present : present.filter((m) => m.id === you);
   const totalPending = tasks.filter((t) => !t.done).length;
 
   return (
     <Screen>
-      <ScreenHeader title="Tareas" sub={`${totalPending} pendientes en ${FAMILY.name}`} />
+      <ScreenHeader title="Tareas" sub={`${totalPending} pendientes en ${family.name}`} />
       <View style={styles.seg}>
         <SegBar
-          value={filter}
-          onChange={setFilter}
+          value={tasksFilter}
+          onChange={(v) => setTasksFilter(v as TasksFilter)}
           options={[
             { id: 'todos', label: 'Toda la familia' },
             { id: 'mias', label: 'Mías' },
           ]}
         />
       </View>
-      {shown.map((who) => (
+      {shown.map((member) => (
         <PersonCard
-          key={who}
-          who={who}
-          tasks={tasks.filter((t) => t.who === who)}
+          key={member.id}
+          member={member}
+          tasks={tasks.filter((t) => t.who === member.id)}
           onToggle={toggle}
+          isYou={member.id === you}
         />
       ))}
     </Screen>
@@ -55,16 +51,17 @@ export default function TareasScreen() {
 }
 
 function PersonCard({
-  who,
+  member,
   tasks,
   onToggle,
+  isYou,
 }: {
-  who: MemberId;
+  member: Member;
   tasks: Task[];
   onToggle: (id: string) => void;
+  isYou: boolean;
 }) {
   const theme = useTheme();
-  const member = MEMBERS[who];
   const done = tasks.filter((t) => t.done).length;
   const pct = tasks.length ? done / tasks.length : 0;
   const allDone = done === tasks.length && tasks.length > 0;
@@ -73,13 +70,13 @@ function PersonCard({
   return (
     <Card style={styles.personCard}>
       <View style={styles.personHead}>
-        <Avatar who={who} size={46} />
+        <Avatar name={member.name} color={member.color} size={46} />
         <View style={styles.flex1}>
           <View style={styles.nameRow}>
             <ThemedText type="smallBold" style={styles.name}>
               {member.name}
             </ThemedText>
-            {who === FAMILY.you ? (
+            {isYou ? (
               <View style={[styles.youPill, { backgroundColor: theme.accentTint }]}>
                 <ThemedText type="small" themeColor="accentPress" style={styles.youText}>
                   Tú
