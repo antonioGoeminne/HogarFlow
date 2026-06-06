@@ -7,8 +7,10 @@
     "icon": "./assets/images/icon.png",
     "scheme": "hogarflow",
     "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.antonio-goeminne.HogarFlow"
     },
     "android": {
       "adaptiveIcon": {
